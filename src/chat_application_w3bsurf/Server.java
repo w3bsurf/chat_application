@@ -8,8 +8,6 @@ public class Server {
 	
 	static Vector<ClientHandler> ar = new Vector<>();
 	
-	static int i = 0;
-	
 	public static void main(String[] args) throws IOException {
 		
 		ServerSocket ss = new ServerSocket(1337);
@@ -21,6 +19,7 @@ public class Server {
 		// Infinite loop for receiving client requests
 		while(true) {
 			
+			// Accepts client
 			s = ss.accept();
 			
 			System.out.println("New client request received : " + s);
@@ -30,9 +29,9 @@ public class Server {
 			String name;
 			boolean taken;
 			
-			
 			System.out.println("Creating new handler for this client...");
 			
+			// Prompts the client to choose a username and check if name is already taken or suitable
 			while (true) {
 				dos.writeUTF("Choose a username:");
 				name = dis.readUTF().trim();
@@ -58,17 +57,13 @@ public class Server {
 			
 			dos.writeUTF("Welcome " + name + "!");
 			
-			ClientHandler handler = new ClientHandler(name, dis, dos, s);
-			
-			Thread t = new Thread(handler);
-			
 			System.out.println("Adding new client to active client list");
-			
+			// Creates new ClientHandler for connected client and starts new thread to 
+			// handle multiple clients asynchronously
+			ClientHandler handler = new ClientHandler(name, dis, dos, s);
+			Thread t = new Thread(handler);
 			ar.add(handler);
-			
 			t.start();
-			
-			i++;
 		}
 	}
 }
@@ -94,6 +89,7 @@ class ClientHandler implements Runnable {
 	public void run() {
 		
 		String received;
+		// Receives and sends messages to and from client until client logs out
 		while (true) {
 			
 			try {
@@ -101,6 +97,8 @@ class ClientHandler implements Runnable {
 				
 				System.out.println(received);
 				
+				// Checks if client wants to logout and sends logout message to all clients
+				// Closes connection, ends thread and removes client from ClientHandler vector
 				if(received.equals("/quit")) {
 				
 					this.dos.writeUTF("See you later " + this.name + "!");
@@ -117,6 +115,7 @@ class ClientHandler implements Runnable {
 					break;
 				}
 				
+				// If message sent by client starts with "@" tries to send private message
 				if (received.charAt(0) == '@') {
 					String[] message = received.split(" ", 2);
 					String recipient = message[0].replace("@", "");
@@ -136,7 +135,8 @@ class ClientHandler implements Runnable {
 					if (i<1) {
 						this.dos.writeUTF("Recipient was not found.");
 					}
-					
+				
+					// Sends public message to everyone
 				} else {
 					for (ClientHandler mc : Server.ar) {
 						
